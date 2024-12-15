@@ -1,12 +1,30 @@
 from django.db import models
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.db.models import Count
 
-
+class CategoryManager(models.Manager):
+    def with_item_count():
+        categories = Category.objects.annotate(item_count=Count('items'))
+        for category in categories:
+            return f'{category.name} - {category.item_count}'
+        
+    def with_tag_count():
+        items_count = Item.objects.all().count()
+        items = Item.objects.annotate(tag_count=('tags'))
+        for item in items:
+            return f'{item.tag_count}, {items_count}'
+    
+    def popular_tags(min_items):
+        tags = Tag.objects.annotate(items_count= Count('items'))
+        popular_tags = tags.filter(items_count__gt=min_items)
+        return popular_tags
+    
 class Category(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     images = GenericRelation('Image', related_query_name="category")
+    objects = CategoryManager()
 
     def __str__(self):
         return self.name
